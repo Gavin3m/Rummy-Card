@@ -10,8 +10,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int CardMin = 1;
-int CardMax = 52;
+int deck_amount = 52;
+#define suit_amount 13
+int hand_amount_0d = 6;
+int shuffle_amount = 10000;
 
 typedef struct{
     int number;
@@ -19,86 +21,257 @@ typedef struct{
 } card;
 
 void createDeck(card* deck){
-    char suit[] = {'C', 'S', 'H', 'D'};
-    int suit_count = 0;
+    char suit[] = {'C', 'S', 'H', 'D', 'A', 'B', 'E', 'F', 'G', 'I', 'J', 'K', 'L'};
+    int suit_index = 0;
 
-    for(int i = 1; i <= 52; i++){
-        int j = i;
-        while(13 < j){j -= 13;}
-        if(i==14 || i==27 || i==40){suit_count++;}
-        deck[i].number = j;
-        deck[i].suit = suit[suit_count];
+    for(int idx = 1; idx <= deck_amount; idx++){
+        // set the card number to the index number
+        int number = idx;
+        // if its greater than the suit amount, subtract until suitable
+        while(suit_amount < number){number -= suit_amount;}
+        // if it is one greater than a multiple of the suit amount, use the next suit
+        if((idx-1)%suit_amount == 0){suit_index++;}
+
+        // set the card details on that index position in the deck
+        deck[idx].number = number;
+        deck[idx].suit = suit[suit_index];
     }
 }
 
-void shuffle(card* deck, int min, int max, int count) {
-    printf("Random numbers between %d and %d: ", min, max);
-
-    for (int i = 0; i < count; i++) {
-        int pos1 = rand() % (max - min + 1) + min;
-        int pos2 = rand() % (max - min + 1) + min;
+void shuffle(card* deck, int maxIdx, int shuffles) {
+    // while shuffles can still be completed
+    for (int cShuffle = 0; cShuffle < shuffles; cShuffle++) {
+        // get two random index positions in the deck
+        int pos1 = rand() % maxIdx + 1;
+        int pos2 = rand() % maxIdx + 1;
+        // swap them using a temporary card variable
         card temp = deck[pos1];
         deck[pos1] = deck[pos2];
         deck[pos2] = temp;
-        printf("%d %d\n", pos1, pos2);
     }
 }
 
-void displayDeck(card* deck, int min, int max){
+void deal(card* deck, card* p1Hand, card* p2Hand, card* center, int hand_amount_0d){
+    // while empty slots exist in both hands, fill them in using the back of the deck
+    for(int idx = 0; idx <= hand_amount_0d; idx++){
+        p1Hand[idx] = deck[deck_amount-idx-hand_amount_0d-1];
+        p2Hand[idx] = deck[deck_amount-idx];
+    }
+
+    // place the first card
+    int offset = (hand_amount_0d*2)-1;
+    int final_count = deck_amount-offset-3;
+    center[0].number = deck[final_count].number;
+    center[0].suit = deck[final_count].suit;
+    
+    // replace all of those cards with blanks
+    for(int idx = deck_amount; final_count <= idx; idx--){
+        deck[idx].number = 0;
+        deck[idx].suit = 'X';
+    }
+}
+
+void displayDeck(card* deck, int minIdx, int maxIdx){
+    // card count variable
     int counter = 0;
-    printf("Displaying Set:\n");
-    for(int i = min; i <= max; i++){
+
+    // from the minimum index to the maximum index of a deck
+    for(int i = minIdx; i <= maxIdx; i++){
+        // print the card
         printf("%d%c\t", deck[i].number, deck[i].suit);
+        // increase the counter
         counter++;
-        if(counter==13){printf("\n"); counter = 0;}
+        // if the counter reaches the suit amount, create a new row for the next suit
+        if(counter==suit_amount){printf("\n"); counter = 0;}
     }
-    printf("\n\n\n\n");
+
+    // proceed down the terminal
+    printf("\n\n");
 }
 
-void deal(card* deck, card* h1, card* h2, int amount){
-    for(int i = 0; i <= amount; i++){
-        h1[i] = deck[52-i-amount];
-        h2[i] = deck[52-i];
-    }
-    for(int i = 52; 52-(amount*2) <= i; i--){
-        deck[i].number = 0;
-        deck[i].suit = 'X';
-    }
-}
+void MatchLoop(card* deck, card* p1, card* p2, int cardAmount){
 
-void PlayTurn(card* deck, card* hand, int turn){
-    displayDeck(hand, 0, 7);
-    card temp;
-    temp.number = deck[turn].number;
-    temp.suit = deck[turn].suit;
-    printf("%d of %c: do you take it?", temp.number, temp.suit);
-    char input = getchar();
-    getchar();
-    return;
 }
-
 
 int main()
 {   
     card deck[52];
-    createDeck(deck);
-    shuffle(deck, CardMin, CardMax, 10000);
-    displayDeck(deck, 1, 52);
-
     card hand1[7];
     card hand2[7];
+    card center[2];
+    
+    createDeck(deck);
+    displayDeck(deck, 1, deck_amount);
 
-    deal(deck, hand1, hand2, 7);
-    displayDeck(deck, 1, 52);
+    shuffle(deck, deck_amount, shuffle_amount);
+    displayDeck(deck, 1, deck_amount);
 
-    int count = 0;
-    while(1){
-    count++;
-    PlayTurn(deck, hand1, count);
-    count++;
-    PlayTurn(deck, hand2, count);
+    deal(deck, hand1, hand2, center, hand_amount_0d);
+    displayDeck(deck, 1, deck_amount);
+
+    int turn = 0;
+    int cardIdx = deck_amount-(hand_amount_0d*2)-3;
+    while(cardIdx!=0){
+
+        printf("\n\t%d\t0\n\t%c\tX\n\n", center[0].number, center[0].suit);
+
+        if(turn%2==1){displayDeck(hand2, 0, hand_amount_0d);}
+        else{displayDeck(hand1, 0, hand_amount_0d);}
+        for(int i=0;i<=hand_amount_0d;i++){printf("%d\t", i);}
+
+        printf("\ndo you take it ([t]ake or [d]raw)?");
+
+        
+
+        char move = getchar();
+
+        while(move!='t' && move!='d'){move = getchar();}
+
+        switch(move){
+            case 't':
+                printf("Choose an index to swap out: ");
+                int index;
+                int input = scanf("%d", &index); 
+                while(input < 0 && hand_amount_0d < input){input = scanf("%d", &index);}
+
+                if(turn%2==1){
+                    card temp = hand2[index];
+                    hand2[index] = center[0];
+                    center[0] = temp;
+                }
+                else{
+                    card temp = hand1[index];
+                    hand1[index] = center[0];
+                    center[0] = temp;
+                }
+                if(turn%2==1){displayDeck(hand2, 0, hand_amount_0d);}
+                else{displayDeck(hand1, 0, hand_amount_0d);}
+
+                break;
+            case 'd':
+                // place the first card
+                center[1].number = deck[cardIdx].number;
+                center[1].suit = deck[cardIdx].suit;
+                printf("\t\t\t%d\n\t\t\t%c\ndo you take it ([t]ake or [p]lace it down)? ", center[1].number, center[1].suit);
+
+                char move = getchar();
+                while(move!='t' && move!='p'){move = getchar();}
+                
+                if(move == 't'){
+                    printf("Choose an index to swap out: ");
+                    int index;
+                    int input = scanf("%d", &index); 
+                    while(input < 0 && hand_amount_0d < input){input = scanf("%d", &index);}
+
+                    if(turn%2==1){
+                        card temp = hand2[index];
+                        hand2[index] = center[1];
+                        center[1] = temp;
+                    }
+                    else{
+                        card temp = hand1[index];
+                        hand1[index] = center[1];
+                        center[1] = temp;
+                    }
+                    if(turn%2==1){displayDeck(hand2, 0, hand_amount_0d);}
+                    else{displayDeck(hand1, 0, hand_amount_0d);}
+                }
+                card temp = center[0];
+                center[0] = center[1];
+                center[1] = temp;
+                if(turn%2==1){displayDeck(hand2, 0, hand_amount_0d);}
+                else{displayDeck(hand1, 0, hand_amount_0d);}
+                cardIdx--;
+                break;
+        }
+        if(turn%2==1){checkWinCondition(hand2, hand_amount_0d+1);}
+        else{checkWinCondition(hand1, hand_amount_0d+1);}
+        
+        printf("Turn ended: next player begins!!\n");
+        turn++;
     }
 
+    return 0;
+}
 
+int runCheck(card* hand, int handAmount){
+    int winning = 0;
+    int count[suit_amount+1];
+    
+    for(int i=0;i<=suit_amount;i++){
+	    count[i]=0;
+    }
+
+    for(int i=0;i<=suit_amount;i++){
+	    count[hand[i].number]++;
+    }
+
+    for(int i=0;i<=handAmount;i++){
+        int index = i;
+        int counter = 0;
+        int run = 0;
+        while(count[index]!=0){
+            for(int i = 0;i<hand_amount_0d;i++){
+                if(hand[i].number == index && hand[i].suit == hand[i+1].suit){
+                    
+                }
+            }
+
+        }
+
+        //'0,1,2,3,4,5,6,7,8,9,10,11,12,13'
+        //[0,0,3,0,1,0,1,1,1,0, 0, 0, 0, 0]
+        
+
+
+
+        if(2 < counter){
+            index--;
+            while(counter != 1){
+                
+                if (hand[index].suit == hand[index-1].suit){
+                    count[hand[index].number]--;
+                    index--;
+                    counter--;
+                    run++;
+                }
+                else{break;}
+            }
+            run++;
+            if(3 <= run){return run;}
+        }
+    }
+}
+
+void checkWinCondition(card* hand, int handAmount){
+    int winning = 0;
+    int count[suit_amount+1];
+    
+    for(int i=0;i<=suit_amount;i++){
+	    count[i]=0;
+    }
+
+    for(int i=0;i<=suit_amount;i++){
+	    count[hand[i].number]++;
+    }
+    //'0,1,2,3,4,5,6,7,8,9,10,11,12,13'
+    //[0,0,3,0,1,0,1,1,0,0, 1, 0, 0, 0]
+
+    for(int i=0;i<=suit_amount;i++){
+        int index = i;
+        int counter = 0;
+        while(count[index]!=0){counter++;index++;}
+        if(2 < counter){
+            index--;
+            while(counter != 1){
+                if (hand[index].suit == hand[index-1].suit){
+                    index--;
+                    counter--;
+                }
+                else{break;}
+            }
+        }
+    }
+    if(winning == handAmount+1){return 1;}
     return 0;
 }
